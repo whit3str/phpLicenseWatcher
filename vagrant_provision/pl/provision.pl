@@ -63,9 +63,13 @@ sub prepare_cache {
     my $uid  = $CONFIG::CACHE_OWNER_UID;
     my $gid  = $CONFIG::CACHE_OWNER_GID;
 
-    mkdir $dest, 0701;
-    chown $uid, $gid, $dest;
-    print "Created cache file directory: ${dest}\n";
+	unless ( -d $dest ) {
+		mkdir $dest, 0701;
+		chown $uid, $gid, $dest;
+		print "Created cache file directory: ${dest}\n";
+	}else{
+		print "Skipping created cache file directory: ${dest}\n"
+	}
 }
 
 # Dir to write files to help with debugging.  ie. /home/vagrant/debug
@@ -76,10 +80,14 @@ sub setup_debug {
     my $gid = $CONFIG::DEBUG_GID;
     my $permissions = $CONFIG::DEBUG_PERMISSIONS;
 
-    mkdir $dest;
-    chown $uid, $gid, $dest;
-    chmod $permissions, $dest;
-    print "Created debugging directory: ${dest}\n";
+	unless ( -d $dest ) {
+		mkdir $dest;
+		chown $uid, $gid, $dest;
+		chmod $permissions, $dest;
+		print "Created debugging directory: ${dest}\n";
+	}else{
+		print "Skipping created debugging directory: ${dest}\n";
+	}
 }
 
 # Copy LM tools binaries to system.
@@ -97,21 +105,30 @@ sub setup_lmtools {
     my ($source, $dest);
 
     $dest = catdir(@dest_path);
-    mkdir $dest, $dir_perms;
-    print "Created directory: ${dest}\n";
+	unless ( -d $dest ) {
+		mkdir $dest, $dir_perms;
+		print "Created directory: ${dest}\n";
+	}else{
+		print "Skipping created directory: ${dest}\n";
+	}
+	
     foreach (@files) {
         $source = catfile(@source_path, $_);
         $dest = catfile(@dest_path, $_);
 
-        # autodie doesn't work with File::Copy
-        print STDERR "LM binary $_: $!\n" and exit 1 unless copy $source, $dest;
-        print "Copied LM binary $_\n";
+		unless ( -d $source ) {
+			print "LM Util Binaries need to be added to the vagrant_provision/lmtools folder before setup.  FlexLM monitoring will not work.";
+		}else{
+			# autodie doesn't work with File::Copy
+			print STDERR "LM binary $_: $!\n" and exit 1 unless copy $source, $dest;
+			print "Copied LM binary $_\n";
 
-        chown $uid, $gid, $dest;
-        print "$_ ownership granted to ${lmtools_user}:${vagrant_user}\n";
+			chown $uid, $gid, $dest;
+			print "$_ ownership granted to ${lmtools_user}:${vagrant_user}\n";
 
-        chmod $file_perms, $dest;
-        printf "$_ permissions set to 0%o\n", $file_perms;
+			chmod $file_perms, $dest;
+			printf "$_ permissions set to 0%o\n", $file_perms;
+		}
     }
 }
 
