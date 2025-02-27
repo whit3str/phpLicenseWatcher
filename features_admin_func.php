@@ -44,7 +44,7 @@ function func_get_page() {
 
 function func_get_features_table_html($feature_list) {
     $table = new html_table(array('class' => "table alt-rows-bgcolor"));
-    $headers = array("Name", "Label", "Show In Lists", "Is Tracked");
+    $headers = array("Name", "Label", "Show In Lists", "Is Tracked","");
     $table->add_row($headers, array(), "th");
     $table->update_cell($table->get_rows_count()-1, 2, array('class'=>"text-center"));
     $table->update_cell($table->get_rows_count()-1, 3, array('class'=>"text-center"));
