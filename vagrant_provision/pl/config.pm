@@ -32,7 +32,7 @@ our $COMPOSER_PACKAGES = "vendor";
 our @COMPOSER_CODE_FILES = qw(*);
 
 # Packages needed for phplw.
-our @REQUIRED_PACKAGES = ("apache2", "php", "php-mysql", "mysql-server", "mysql-client", "lsb", "wget", "zip", "unzip","composer");
+our @REQUIRED_PACKAGES = ("apache2", "php", "php-mysql", "mysql-server", "mysql-client", "lsb", "wget", "zip", "unzip");
 
 # Non super user account.  Some package systems run better when not as root.
 our $VAGRANT_USER = "vagrant";
