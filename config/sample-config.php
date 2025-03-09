@@ -17,7 +17,7 @@ $cache_lifetime=7200;
 // License expiration alerts are sent to $notify_address.
 // $reply_address is filled in the from and reply fields.
 // Consider NOT using a "do not reply" address so that errors can be received.
-// $smtp_tls is either "smtps" or "starttls".
+// $smtp_tls is either "smtps", "starttls" or "none" to disable encryption.
 // $smtp_port is usually either "465" (smtps) or "587" (starttls).
 // License alert emails are disabled when $send_email_notifications is set 0.
 // Licenses expiring within $lead_time (in days) are included in the alerts.
