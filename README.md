@@ -24,36 +24,53 @@ To help administrators analyze trends, the software offers charts of historical 
 * MySQL compatible database
 * FlexLM lmutil binary for the OS you are running the web server on.
 
-## Install process
+## Installation process
 1. Retrieve required packages for your OS/distribution.  Any Linux distribution should work however we develop against Ubuntu.
    * Apache2
    * PHP 8 or higher (7.3 and up probably still work, but are not recommended)
+   * [https://getcomposer.org](Composer) for PHP package management
    * MySQL-server, MySQL-client, PHP MySQL Extension
    * You need the Linux Standard Base (LSB) to run Linux-precompiled FlexLM binaries.
 
    For example, using Ubuntu 20.04:
    ```
-   sudo apt install apache2 php mysql-server mysql-client php-mysql lsb
+   sudo apt install apache2 php mysql-server mysql-client php-mysql lsb composer
    ```
 2. Clone repository locally using git
    ```
    git clone https://github.com/rpi-dotcio/phpLicenseWatcher.git /var/www/html/
    ```
-3. Create the database
+3. Install the monitoring binaries for the vendors you wish to monitor.  Recommended location is /opt/lmtools/ . These should have come from the vendor with the software you are looking to monitor.  The FlexLM lmtuil from any of the vendors will work with others.
+
+```
+   mkdir /opt/lmtools/
+
+   #copy the FlexLM (lmutil) and/or Mathematica (monitorlm) Linux binary files to this folder.
+  
+   #Make sure they have the execute permission set
+   chmod +x /opt/lmtools/*
+```
+
+5. Create the database
    ```
    mysqladmin create licenses
    mysql -f licenses < phplicensewatcher.sql
    ```
-4. Copy "config/sample-config.php" to "./config.php" and edit it for the proper values for your setup.  Brief instructions are provided within the file as code comments.
+6. Edit "config.php" for the proper values for your setup, typically just the database username, and password.  Brief instructions are provided within the file as code comments.
 
-5. Setup cron to run scheduled tasks
+7. Setup cron to run scheduled tasks
    ```
    0,10,20,30,40,50 * * * * php /var/www/html/license_util.php >> /dev/null
    15 0 * * 1  php /var/www/html/license_cache.php >> /dev/null
    0 6 * * 1 php /var/www/html/license_alert.php >> /dev/null
    ```
-6. You should use your web server's built in capabilities to password protect your site.
-7. Navigate to page `check_installation.php` to check for possible installation issues.
+8. You should use your web server's built in capabilities to password protect your site.  See some example configurations in our [https://github.com/phpLicenseWatcher/phpLicenseWatcher/wiki/Example-Apache-Configurations](example apache configurations wiki page).
+9. Install PHP packages using composer.
+```
+cd /var/html/www/
+composer install
+```
+9. Navigate to page `check_installation.php` under the admin table to check for possible installation issues.
 
 ### What is "LM Default Usage Reporting"?
 FlexLM documentation states that FlexLM should report license usage based on licenses checked out by users, only.
