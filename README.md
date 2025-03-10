@@ -1,6 +1,6 @@
 ## Overview
-The phpLicenseWatcher software is designed to monitor and manage license servers efficiently. It provides a comprehensive overview of the health of one or more license servers, ensuring that administrators can easily check which licenses are being used and identify the current users.
-To help users analyze trends, the software offers charts of historical license usage, providing valuable insights into license utilization over time. This helps organizations reduce software licensing costs through better management and timely renewals.
+The phpLicenseWatcher software is designed to monitor and manage software license servers efficiently. It provides a comprehensive overview of the health of one or more license servers, ensuring that administrators can easily check which licenses are being used and identify the current users.
+To help administrators analyze trends, the software offers charts of historical license usage, providing valuable insights into license utilization over time. This helps organizations reduce software licensing costs through better management and timely renewals.
 
 ## Key features
 
