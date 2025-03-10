@@ -116,7 +116,7 @@ sub setup_lmtools {
         $source = catfile(@source_path, $_);
         $dest = catfile(@dest_path, $_);
 
-		unless ( -d $source ) {
+		unless ( -f $source ) {
 			print "LM Util Binaries need to be added to the vagrant_provision/lmtools folder before setup.  FlexLM monitoring will not work.";
 		}else{
 			# autodie doesn't work with File::Copy
