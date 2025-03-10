@@ -25,9 +25,9 @@ To help administrators analyze trends, the software offers charts of historical 
 * FlexLM lmutil binary for the OS you are running the web server on.
 
 ## Install process
-1. Retrieve required packages for your OS/distribution:
+1. Retrieve required packages for your OS/distribution.  Any Linux distribution should work however we develop against Ubuntu.
    * Apache2
-   * PHP 7.3 or higher
+   * PHP 8 or higher (7.3 and up probably still work, but are not recommended)
    * MySQL-server, MySQL-client, PHP MySQL Extension
    * You need the Linux Standard Base (LSB) to run Linux-precompiled FlexLM binaries.
 
