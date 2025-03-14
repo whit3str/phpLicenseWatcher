@@ -12,7 +12,7 @@ To help administrators analyze trends, the software offers charts of historical 
 
 > [!IMPORTANT]  
 > We are soliciting feedback on what features or improvements would be of interest to users of this software.  We are particularily curious of any installation, or initial use challenges you may have faced as a primary goal is to make initial install as simple as possible.
-> Please contact us via our new [gitter.im chat room](https://app.gitter.im/#/room/#phpLicenseWatcher:gitter.im) or you can email us at 
+> Please open an issue to provide feedback.
 
 ## Limitations
 
