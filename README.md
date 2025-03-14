@@ -1,10 +1,18 @@
-## What this program does
+## Overview
+The phpLicenseWatcher software is designed to monitor and manage software license servers efficiently. It provides a comprehensive overview of the health of one or more license servers, ensuring that administrators can easily check which licenses are being used and identify the current users.
+To help administrators analyze trends, the software offers charts of historical license usage, providing valuable insights into license utilization over time. This helps organizations reduce software licensing costs through better management and timely renewals.
+
+## Key features
 
 * Shows the health of one or more license servers
 * Checks which licenses are being used and displays who is currently using them
 * Gets a list of licenses, their expiration date and the number of days to expiration
 * E-mails alerts of licenses that will expire within certain time period ie. within next 10 days.
 * Provides charts of historical license usage
+
+> [!IMPORTANT]  
+> We are soliciting feedback on what features or improvements would be of interest to users of this software.  We are particularily curious of any installation, or initial use challenges you may have faced as a primary goal is to make initial install as simple as possible.
+> Please open an issue to provide feedback.
 
 ## Limitations
 
@@ -16,36 +24,53 @@
 * MySQL compatible database
 * FlexLM lmutil binary for the OS you are running the web server on.
 
-## Install process
-1. Retrieve required packages for your OS/distribution:
+## Installation process
+1. Retrieve required packages for your OS/distribution.  Any Linux distribution should work however we develop against Ubuntu.
    * Apache2
-   * PHP 7.3 or higher
+   * PHP 8 or higher (7.3 and up probably still work, but are not recommended)
+   * [https://getcomposer.org](Composer) for PHP package management
    * MySQL-server, MySQL-client, PHP MySQL Extension
    * You need the Linux Standard Base (LSB) to run Linux-precompiled FlexLM binaries.
 
    For example, using Ubuntu 20.04:
    ```
-   sudo apt install apache2 php mysql-server mysql-client php-mysql lsb
+   sudo apt install apache2 php mysql-server mysql-client php-mysql lsb composer
    ```
 2. Clone repository locally using git
    ```
    git clone https://github.com/rpi-dotcio/phpLicenseWatcher.git /var/www/html/
    ```
-3. Create the database
+3. Install the monitoring binaries for the vendors you wish to monitor.  Recommended location is /opt/lmtools/ . These should have come from the vendor with the software you are looking to monitor.  The FlexLM lmtuil from any of the vendors will work with others.
+
+```
+   mkdir /opt/lmtools/
+
+   #copy the FlexLM (lmutil) and/or Mathematica (monitorlm) Linux binary files to this folder.
+  
+   #Make sure they have the execute permission set
+   chmod +x /opt/lmtools/*
+```
+
+5. Create the database
    ```
    mysqladmin create licenses
    mysql -f licenses < phplicensewatcher.sql
    ```
-4. Copy "config/sample-config.php" to "./config.php" and edit it for the proper values for your setup.  Brief instructions are provided within the file as code comments.
+6. Edit "config.php" for the proper values for your setup, typically just the database username, and password.  Brief instructions are provided within the file as code comments.
 
-5. Setup cron to run scheduled tasks
+7. Setup cron to run scheduled tasks
    ```
    0,10,20,30,40,50 * * * * php /var/www/html/license_util.php >> /dev/null
    15 0 * * 1  php /var/www/html/license_cache.php >> /dev/null
    0 6 * * 1 php /var/www/html/license_alert.php >> /dev/null
    ```
-6. You should use your web server's built in capabilities to password protect your site.
-7. Navigate to page `check_installation.php` to check for possible installation issues.
+8. You should use your web server's built in capabilities to password protect your site.  See some example configurations in our [https://github.com/phpLicenseWatcher/phpLicenseWatcher/wiki/Example-Apache-Configurations](example apache configurations wiki page).
+9. Install PHP packages using composer.
+```
+cd /var/html/www/
+composer install
+```
+9. Navigate to page `check_installation.php` under the admin table to check for possible installation issues.
 
 ### What is "LM Default Usage Reporting"?
 FlexLM documentation states that FlexLM should report license usage based on licenses checked out by users, only.
