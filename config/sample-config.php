@@ -30,6 +30,7 @@ $notify_address="";
 $reply_address="";
 $send_email_notifications=0;
 $lead_time=30;
+$smtp_debug=false;
 
 // $disable_autorefresh, when set to 1, will halt automatic refresh of certain
 // page views.  Make sure $collection_interval matches, in minutes, the cron
