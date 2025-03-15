@@ -17,9 +17,15 @@ $cache_lifetime=7200;
 // $do_not_reply_address is filled in the reply field.
 // License alert emails are disabled when either is left blank.
 // Licenses expiring within $lead_time (in days) are included in the alerts.
+$smtp_host="";
+$smtp_login="";
+$smtp_password="";
+$smtp_tls="";
+$smtp_port="";
 $notify_address="";
 $do_not_reply_address="";
 $lead_time=30;
+$smtp_debug=false;
 
 // $disable_autorefresh, when set to 1, will halt automatic refresh of certain
 // page views.  Make sure $collection_interval matches, in minutes, the cron

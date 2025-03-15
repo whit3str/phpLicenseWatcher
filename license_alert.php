@@ -38,10 +38,12 @@ $colHeaders = array("Server", "Server label", "Feature expiring", "Expiration da
 
 $table->add_row($colHeaders, array(), "th");
 
+$warn_count = 0;
+
 // Now after the expiration has been built loop through all the fileservers
 $max_expiration_array = count($expiration_array);
 for ($i = 0; $i < $max_expiration_array; $i++) {
-    if (array_key_exists($i, $expiration_array)) {
+    if (array_key_exists($i, $expiration_array) && !is_null($expiration_array[$i]) ) {
         foreach ($expiration_array[$i] as $key => $myarray) {
             $max_myarray = count($myarray);
             for ($j = 0; $j < $max_myarray; $j++) {
@@ -71,6 +73,7 @@ for ($i = 0; $i < $max_expiration_array; $i++) {
                 $table->update_cell(($table->get_rows_count()-1), 3, array('class'=>"center-text"));
                 $table->update_cell(($table->get_rows_count()-1), 4, array('class'=>"center-text{$bgcolor_class}"));
                 $table->update_cell(($table->get_rows_count()-1), 5, array('class'=>"center-text"));
+                $warn_count++;
             }
         }
     }
@@ -81,7 +84,7 @@ $table_html = $table->get_html();
 
 // Message body for either browser view or email.
 $message = <<<HTML
-These licenses will expire within {$lead_time} days.
+These {$warn_count} licenses will expire within {$lead_time} days.
 Licenses will expire at 23:59 on the day of expiration.
 <p>
 {$table_html}
@@ -89,6 +92,33 @@ HTML;
 
 // More reliable check to determine if we're running on CLI than php_sapi_name()
 if (empty(preg_grep("/^HTTP_/", array_keys($_SERVER)))) {
+    
+    $opts = getopt('dt',['debug','test']);
+    foreach( array_keys($opts) as $opt ){
+        if( $opt==='test' || $opt ==='t' ){
+            fprintf(STDOUT, "Forcing test email message." . PHP_EOL );
+            $warn_count = 1;
+            $message .= "TEST EMAIL MESSAGE";
+        }
+        
+        if( $opt==='debug' || $opt ==='d' ){
+            fprintf(STDOUT, "Enabling debug for this execution." . PHP_EOL );
+            global $smtp_debug;
+            $smtp_debug = true;
+        }
+        
+    }
+    
+    if (!$send_email_notifications) {
+        fprintf(STDOUT, "Sending email notifications is disabled, see \$send_email_notifications; defined in config.php" . PHP_EOL);
+        exit(0);
+    }
+    
+    if( $warn_count === 0 ){
+        fprintf(STDOUT, "No expiring licenses to warn about." . PHP_EOL );
+        exit(0);
+    }
+    
     // Script run from command line.  Send license alerts via email.
     global $send_email_notifications;  // defined in config.php
     if ($send_email_notifications) {
@@ -105,16 +135,18 @@ exit(0);
 function send_email($message) {
     // Check for PHPMailer library before proceeding.
     if (!class_exists("PHPMailer\PHPMailer\PHPMailer", true)) {
-        fprintf(STDERR, "Cannot mail license alerts.  PHPMailer library not found.\n");
+        fprintf(STDERR, "Cannot mail license alerts.  PHPMailer library not found.". PHP_EOL);
         exit(1);
     }
 
     // globals are defined in config.php
-    global $smtp_host, $smtp_login, $smtp_password, $smtp_tls, $smtp_port, $notify_address, $reply_address, $lead_time;
+    global $smtp_host, $smtp_login, $smtp_password, $smtp_tls, $smtp_port, $notify_address, $reply_address, $lead_time, $smtp_debug;
 
     $mail = new PHPMailer();
     $mail->isSMTP();
-    $mail->SMTPDebug = SMTP::DEBUG_OFF;
+    if( $smtp_debug ){
+        $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+    }
     $mail->SMTPAuth  = true;
     $mail->Host      = $smtp_host;
     $mail->Port      = $smtp_port;
@@ -129,13 +161,13 @@ function send_email($message) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         break;
     case "none":
-        fprintf(STDERR, "No encryption of sent email.\n");
+        fprintf(STDERR, "No encryption of sent email.". PHP_EOL);
         $mail->SMTPAuth  = false;
         $mail->SMTPSecure = '';
         $mail->SMTPAutoTLS = false;
         break;
     default:
-        fprintf(STDERR, "Cannot mail license alerts.\n\$smtp_tls not properly set in config.php\n");
+        fprintf(STDERR, "Cannot mail license alerts.\n\$smtp_tls not properly set in config.php". PHP_EOL);
         exit(1);
     }
 
@@ -148,9 +180,11 @@ function send_email($message) {
     $mail->Body    = $message;
 
     if (!$mail->send()) {
-        fprintf(STDERR, "Cannot mail license alerts.\nMailer Error: %s\n", $mail->ErrorInfo);
+        fprintf(STDERR, "Cannot mail license alerts.\nMailer Error: %s". PHP_EOL, $mail->ErrorInfo);
         exit(1);
     }
+    
+    fprintf(STDOUT, "Email Sent". PHP_EOL );
 }
 
 function print_view($message) {
