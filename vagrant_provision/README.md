@@ -1,8 +1,10 @@
 # Vagrant
 ## Summary
-Vagrant is software used to more easily manage VirtualBox, while VirtualBox will run the actual virtual machine.  This repository provides a `vagrantfile` that defines a Vagrant box to help with code development.  The Vagrant box is a virtual machine that acts as a development and test server.  It provides a LAMP stack with Ubuntu 20.04, Apache2, MySQL, and PHP.
+Vagrant is software used to more easily manage VirtualBox, while VirtualBox will run the actual virtual machine.  This repository provides a `vagrantfile` that defines a Vagrant box to help with code development.  The Vagrant box is a virtual machine that acts as a development and test server.  It provides a LAMP stack with Ubuntu 22.04, Apache2, MySQL, and PHP 8.1.
 
-The Vagrant Box was originally developed and tested with Vagrant 2.2.3, VirtualBox 5.2.26, and macOS 10.12.6.  It should work with Vagrant 2.2.0 or later, VirtualBox 5.2.x or later, and any operating systems compatible with Vagrant and Virtualbox.  This development environment does not work on (ARM) M1 based Macintosh because Virtualbox only works with x86/x64.
+The Vagrant box was originally developed and tested with Vagrant 2.2.3, VirtualBox 5.2.26, and macOS 10.12.6.  It should work with Vagrant 2.2.0 or later, VirtualBox 5.2.x or later, and any operating systems compatible with Vagrant and Virtualbox.  ~~This development environment does not work on (ARM) M1 based Macintosh because Virtualbox only works with x86/x64.~~
+
+Vagrant (2.4.2+) and Virtualbox (7.1+) now support Apple Silicon (arm64) Macintosh.  This has been tested with a Mac Mini M4 Pro with macOS Sequoia 15.5, Vagrant 2.4.6, and Virtualbox v7.1.8, and found that the Vagrant box will build and run.  **However, you must provide arm64 precompiled binaries for `lmutil` and `monitorlm`.**  Alternatively, you can try to [manually install Box64](https://github.com/ptitSeb/box64/blob/main/docs/COMPILE.md#pre-built-packages) to provide x64 to arm64 translation.  We are not affiliated with Box64, and therefore cannot provide any technical assistance for Box64.
 
 _Please do **not** try to use the vagrant box as a production system.  The vagrant box is provided as a development aid.  It is meant to be only accessible to its host computer, and it is not designed with the proper security needed for a production system._
 
@@ -58,7 +60,6 @@ You may develop code for this repository on your host.  Make sure the VM is runn
     * Virtualbox's NAT firewall is meant to block connections to the VM from the Internet.
     * Your host can be seen from within the VM at `10.0.2.2`.
 * You can manually run `license_cache.php` and `license_util.php` via ssh with `sudo php ~/license_cache` and `sudo php ~/license_util` respectively.  `~/` refers to `/home/vagrant/`.
-* __With the removal of PEAR libraries, Composer is no longer needed and has been disabled in Vagrant.__  Composer may return should the need arise in the future.
 
 ### Troubleshooting
 * Many problems can be solved by issuing a "full-update". `vagrant up --provision-with full-update`
@@ -71,6 +72,7 @@ You may develop code for this repository on your host.  Make sure the VM is runn
     1. Enter the Vagrant box via ssh. `vagrant ssh`
     2. Start Apache. `sudo apachectl start` or `sudo apachectl restart`
 * Should `vagrant ssh` fail to authenticate, you can alternatively try `ssh -p 2222 vagrant@localhost`.  Password is `vagrant`.
+* If the code files are not available in the VM at `~/github_phplw`, try this command in the host: `vagrant vbguest --do install`.
 
 ### Common Commands
 Command | Purpose
