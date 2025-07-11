@@ -1,23 +1,26 @@
 #!/bin/bash
 set -e
 
-# Démarrer le service cron
+# Attendre que la base de données soit prête
+echo "Waiting for database connection..."
+while ! mysqladmin ping -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" --silent; do
+    sleep 1
+done
+echo "Database is ready!"
+
+# Créer le lien symbolique pour lmutil si le fichier existe
+if [ -f /opt/lmtools/lmutil ]; then
+    ln -sf /opt/lmtools/lmutil /usr/local/bin/lmutil
+    chmod +x /opt/lmtools/lmutil
+    echo "lmutil linked successfully"
+fi
+
+# Créer le répertoire de cache s'il n'existe pas
+mkdir -p /var/cache/phplw/
+chown www-data:www-data /var/cache/phplw/
+
+# Démarrer cron
 service cron start
 
-# Vérifier si le fichier de configuration existe
-if [ ! -f /var/www/html/config.php ]; then
-    echo "Configuration file not found. Please mount your config.php file."
-    echo "Example: docker run -v /path/to/your/config.php:/var/www/html/config.php ..."
-fi
-
-# Attendre que la base de données soit disponible si DB_HOST est défini
-if [ ! -z "$DB_HOST" ]; then
-    echo "Waiting for database connection..."
-    while ! mysqladmin ping -h"$DB_HOST" -P"${DB_PORT:-3306}" -u"$DB_USER" -p"$DB_PASSWORD" --silent; do
-        sleep 1
-    done
-    echo "Database is ready!"
-fi
-
-# Exécuter la commande par défaut
-exec "$@"
+# Démarrer Apache au premier plan
+exec apache2ctl -D FOREGROUND
