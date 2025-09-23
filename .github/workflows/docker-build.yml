@@ -11,23 +11,18 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # Build des images Linux multi-architecture
   build-linux:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      image-metadata: ${{ steps.build.outputs.metadata }}
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set lowercase repository name
-      run: |
-        echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -43,46 +38,22 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for Linux
-      id: meta-linux
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,suffix=-linux
-          type=ref,event=pr,suffix=-linux
-          type=semver,pattern={{version}},suffix=-linux
-          type=semver,pattern={{major}}.{{minor}},suffix=-linux
-          type=semver,pattern={{major}},suffix=-linux
-          type=raw,value=latest-linux,enable={{is_default_branch}}
-
     - name: Build and push Linux image
-      id: build
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile.linux
-        platforms: |
-          linux/amd64
-          linux/arm64
-          linux/arm/v7
-          linux/ppc64le
-          linux/s390x
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta-linux.outputs.tags }}
-        labels: ${{ steps.meta-linux.outputs.labels }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-linux
         cache-from: type=gha,scope=linux
         cache-to: type=gha,mode=max,scope=linux
 
-  # Build des images Windows
   build-windows:
     runs-on: windows-latest
     permissions:
       contents: read
       packages: write
-    outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      image-metadata: ${{ steps.build.outputs.metadata }}
 
     steps:
     - name: Checkout repository
@@ -94,9 +65,6 @@ jobs:
         $imageName = "$env:GITHUB_REPOSITORY".ToLower()
         echo "IMAGE_NAME=$imageName" >> $env:GITHUB_ENV
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
     - name: Log in to Container Registry
       if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
@@ -105,33 +73,19 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for Windows
-      id: meta-windows
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,suffix=-windows
-          type=ref,event=pr,suffix=-windows
-          type=semver,pattern={{version}},suffix=-windows
-          type=semver,pattern={{major}}.{{minor}},suffix=-windows
-          type=semver,pattern={{major}},suffix=-windows
-          type=raw,value=latest-windows,enable={{is_default_branch}}
-
     - name: Build and push Windows image
-      id: build
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.windows
-        platforms: windows/amd64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta-windows.outputs.tags }}
-        labels: ${{ steps.meta-windows.outputs.labels }}
-        cache-from: type=gha,scope=windows
-        cache-to: type=gha,mode=max,scope=windows
+      shell: powershell
+      run: |
+        $imageName = "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-windows"
+        Write-Host "Building Windows image: $imageName"
+        
+        docker build -f Dockerfile.windows -t $imageName .
+        
+        if ("${{ github.event_name }}" -ne "pull_request") {
+          Write-Host "Pushing Windows image..."
+          docker push $imageName
+        }
 
-  # Création du manifest multi-plateforme
   create-manifest:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
@@ -142,8 +96,7 @@ jobs:
 
     steps:
     - name: Set lowercase repository name
-      run: |
-        echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
     - name: Log in to Container Registry
       uses: docker/login-action@v3
@@ -151,94 +104,13 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata for manifest
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Create and push manifest
       run: |
-        # Installation de Docker CLI avec support manifest expérimental
         export DOCKER_CLI_EXPERIMENTAL=enabled
         
-        # Pour chaque tag, créer un manifest qui combine Linux et Windows
-        echo "${{ steps.meta.outputs.tags }}" | while IFS= read -r tag; do
-          if [ -n "$tag" ]; then
-            echo "Creating manifest for: $tag"
-            
-            # Créer le manifest en combinant les images Linux et Windows
-            docker manifest create "$tag" \
-              "${tag}-linux" \
-              "${tag}-windows" || echo "Warning: Failed to create manifest for $tag"
-            
-            # Annoter l'image Linux avec ses architectures multiples
-            docker manifest annotate "$tag" "${tag}-linux" \
-              --arch amd64 --os linux || true
-            docker manifest annotate "$tag" "${tag}-linux" \
-              --arch arm64 --os linux || true
-            docker manifest annotate "$tag" "${tag}-linux" \
-              --arch arm --variant v7 --os linux || true
-            docker manifest annotate "$tag" "${tag}-linux" \
-              --arch ppc64le --os linux || true
-            docker manifest annotate "$tag" "${tag}-linux" \
-              --arch s390x --os linux || true
-              
-            # Annoter l'image Windows
-            docker manifest annotate "$tag" "${tag}-windows" \
-              --arch amd64 --os windows || true
-            
-            # Push du manifest
-            docker manifest push "$tag" || echo "Warning: Failed to push manifest for $tag"
-          fi
-        done
-
-    - name: Inspect final manifest
-      run: |
-        echo "${{ steps.meta.outputs.tags }}" | head -n1 | while IFS= read -r tag; do
-          if [ -n "$tag" ]; then
-            echo "Inspecting manifest for: $tag"
-            docker manifest inspect "$tag" || echo "Warning: Failed to inspect $tag"
-          fi
-        done
-
-  # Job optionnel : Test des images
-  test-images:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    needs: [create-manifest]
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-    - name: Set lowercase repository name
-      run: |
-        echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Test multi-platform image pull
-      run: |
-        # Test que l'image peut être tirée sur différentes plateformes
-        echo "Testing image pull for different platforms..."
+        docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-linux \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-windows
         
-        # Pull de l'image par défaut (devrait automatiquement sélectionner linux/amd64)
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Warning: Failed to pull latest"
-        
-        # Pull explicite pour Linux
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-linux || echo "Warning: Failed to pull linux variant"
-        
-        echo "Multi-platform image test completed"
+        docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
